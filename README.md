@@ -12,10 +12,12 @@ Python 3.11 project for simulating an n-pendulum, a physical system akin to a ch
 4. You will be prompted to fill in information about the simulation. Do so, pressing `enter` after typing each value.
 5. Wait while the animation loads. The programme will create `pendulum.gif` and open it automatically.
 
+Warning: The more links you add to the pendulum, the longer it takes the programme to run. I would recommend not going above 10. Performance will improve whenever Numba becomes available for Python 3.11.
+
 ### Theory
 Let's consider an n-pendulum with $n$ rods of length $l_i$ and $n$ bobs of mass $m_i$ linked together. Let's also take a cartesian coordinate axis centered at the anchor point of rod $1$, with an upward&ndash;directed $y$&ndash;axis. 
 
-Notice that our system satisfies the Principle of Virtual Work, so we can apply the Lagrangian formalism. If we take our generalised coordinates $\theta_i$ to be the counterclockwise angle between each rod and the negative $y$ direction, the $(x_i,y_i)$ coordinates of each bob will be:
+Given that our system satisfies the Principle of Virtual Work, we can apply the Lagrangian formalism. If we take our generalised coordinates $\theta_i$ to be the counterclockwise angle between each rod and the negative $y$ direction, the $(x_i,y_i)$ coordinates of each bob will be:
 
 $$
 \begin{align*}

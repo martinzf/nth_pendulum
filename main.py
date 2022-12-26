@@ -7,44 +7,37 @@ import webbrowser
 # Animation frames per second
 FPS = 30
 
-# Number of bobs
-while True:
-    try:
-        n = int(input('How many bobs does the pendulum have?: '))
-        if n > 0:
-            break
-        else:
-            print('Input must be strictly positive.')
-    except:
-        print('Input must be an integer.')
-
-# Get initial conditions
-def request_float(message: str, positive: bool) -> float:
+def request(type: callable, prompt: str, positive: bool) -> float:
+    # Gets user input
     while True:
         try:
-            f = float(input(message))
+            answer = type(input(prompt))
             if not(positive):
-                return f
-            if f > 0:
-                return f
+                return answer
+            if answer > 0:
+                return answer
             print('Input must be strictly positive.')
         except:
-            print('Input must be a float.')
+            print(f'Input must be {type}.') 
 
-print("Input each bob's parameters.")
+# Number of bobs
+n = request(int, 'Input the number of links the n-pendulum has: ', True)
+
+# Initial conditions
+print("Input each pendulum's parameters.")
 theta_0 = []
 theta_d_0 = []
 length = []
 mass = []
 for i in range(n):
-    theta_0.append(request_float(f'Initial angle wrt vertical of pendulum {i+1} (rad): ', False))
-    theta_d_0.append(request_float(f'Initial angular velocity of pendulum {i+1} (rad/s): ', False))
-    length.append(request_float(f'Length of pendulum {i+1} (m): ', True))
-    mass.append(request_float(f'Mass of pendulum {i+1} (kg): ', True))
+    theta_0.append(request(float, f'Initial angle wrt vertical of pendulum {i+1} (rad): ', False))
+    theta_d_0.append(request(float, f'Initial angular velocity of pendulum {i+1} (rad/s): ', False))
+    length.append(request(float, f'Length of pendulum {i+1} (m): ', True))
+    mass.append(request(float, f'Mass of pendulum {i+1} (kg): ', True))
 
 gravity = 9.8
-t0 = request_float('Initial time (s): ', False)
-tf = request_float('Final time (s): ', False)
+t0 = request(float, 'Initial time (s): ', False)
+tf = request(float, 'Final time (s): ', False)
 T = np.abs(tf - t0)
 time = np.linspace(t0, tf, int(FPS * T) + 1)
 
