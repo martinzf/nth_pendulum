@@ -1,6 +1,16 @@
 # N&ndash;Pendulum
 ### About
-WIP
+Python 3.11 project for simulating an n-pendulum, a physical system akin to a chain in which $n$ pendulums are linked together.
+
+### Preview
+![alt text](preview.gif)
+
+### How to use
+1. Clone the repository and open its folder from the CLI.
+2. Run the command `pip install -r requirements.txt` to install dependencies.
+3. Run the command `python main.py` (or `python3 main.py` if both Python 2 and Python 3 are installed on your computer).
+4. You will be prompted to fill in information about the simulation. Do so, pressing `enter` after typing each value.
+5. Wait while the animation loads. The programme will create `pendulum.gif` and open it automatically.
 
 ### Theory
 Let's consider an n-pendulum with $n$ rods of length $l_i$ and $n$ bobs of mass $m_i$ linked together. Let's also take a cartesian coordinate axis centered at the anchor point of rod $1$, with an upward&ndash;directed $y$&ndash;axis. 
@@ -190,7 +200,7 @@ A\ddot{\vec{\theta}} = -g\vec{c}-B\dot{\vec{\theta}^2}
 \end{equation}
 $$
 
-It is clear we need to find what $A^{-1}$ is. Doing so allows us to write the explicit system:
+And we can obtain the following explicit formula for $\ddot{\vec{\theta}}$:
 
 $$
 \begin{equation}
@@ -198,4 +208,4 @@ $$
 \end{equation}
 $$
 
-This last step will be done with SymPy for convenience.
+This last step, as well as the solution to the system of ODEs will be calculated numerically.

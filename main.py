@@ -1,5 +1,4 @@
 import numpy as np
-import sympy as smp
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 from matplotlib import animation
@@ -50,7 +49,13 @@ T = np.abs(tf - t0)
 time = np.linspace(t0, tf, int(FPS * T) + 1)
 
 # Second derivative of theta
-def theta_dd(g, m, l, theta, theta_d):
+def theta_dd(
+    g: float, 
+    m: list[float], 
+    l: list[float], 
+    theta: list[float], 
+    theta_d: list[float]
+    ) -> np.array:
     rows_A = []
     for k in range(n):
         rows_A.append([l[j] * np.cos(theta[k] - theta[j]) * np.sum(m[np.max([j, k]):]) for j in range(n)])
