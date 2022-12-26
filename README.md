@@ -24,6 +24,7 @@ x_2 &= l_1\sin\theta_1+l_2\sin\theta_2 & y_2 &= -l_1\cos\theta_1-l_2\cos\theta_2
 \vdots & & \vdots &
 \end{align*}
 $$
+
 $$
 \begin{align}
 x_i &= \sum\limits_{j=1}^i l_j\sin\theta_j & y_i &= -\sum\limits_{j=1}^i l_j\cos\theta_j
@@ -55,6 +56,7 @@ T = \frac{1}{2}\sum\limits_{i=1}^n m_i\left[
 $$
 
 The potential energy will be:
+
 $$
 \begin{equation}
 V = -g\sum\limits_{i=1}^n\sum\limits_{j=1}^i m_i l_j\cos\theta_j
@@ -74,6 +76,7 @@ $$
 -g\sum\limits_{i=k}^n m_il_k\sin\theta_k
 \end{equation}
 $$
+
 $$
 \begin{equation}
 \frac{\partial L}{\partial\dot{\theta}_k}=
@@ -84,6 +87,7 @@ $$
 \right]
 \end{equation}
 $$
+
 $$
 \begin{equation}
 \frac{d}{dt}\frac{\partial L}{\partial\dot{\theta}_k}=
