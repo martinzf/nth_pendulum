@@ -19,50 +19,6 @@ while True:
     except:
         print('Input must be an integer.')
 
-# Lengths
-symbols = (fr'l_{i}' for i in range(n))
-l = smp.symbols(' '.join(symbols))
-
-# Masses
-symbols = (fr'm_{i}' for i in range(n))
-m = smp.symbols(' '.join(symbols))
-
-# Time & gravity
-t, g = smp.symbols('t g')
-
-# Angles
-symbols = (fr'\theta_{i}' for i in range(n))
-theta = smp.symbols(' '.join(symbols), cls=smp.Function)
-theta = [theta[i](t) for i in range(n)]
-theta_d = [smp.diff(theta[i], t) for i in range(n)] # 1st derivative
-
-# Matrices
-def summation(x: tuple[smp.Symbol], a: int, b: int) -> smp.Symbol:
-    # Sums elements in tuple of SymPy symbols
-    sum = 0
-    for i in np.arange(a, b):
-        sum += x[i]
-    return sum
-
-rows_A = []
-for k in range(n):
-    rows_A.append([l[j] * smp.cos(theta[k] - theta[j]) * summation(m, np.max([j, k]), n) for j in range(n)])
-A = smp.Matrix(rows_A)
-
-rows_B = []
-for k in range(n):
-    rows_B.append([l[j] * smp.sin(theta[k] - theta[j]) * summation(m, np.max([j, k]), n) for j in range(n)])
-B = smp.Matrix(rows_B)
-
-c = smp.Matrix([[smp.sin(theta[i]) * summation(m, i, n)] for i in range(n)])
-
-theta_d_2 = smp.Matrix([[theta_d[i] ** 2] for i in range(n)])
-
-# Obtain numerical functions
-non_homo = smp.lambdify((t, g, *m, *l, *theta, *theta_d), -(g * c + B * theta_d_2))
-A = smp.lambdify((t, g, *m, *l, *theta, *theta_d), A)
-theta_dd = lambda t, g, m, l, theta, theta_d: (np.linalg.inv(A(t, g, *m, *l, *theta, *theta_d)) @ non_homo(t, g, *m, *l, *theta, *theta_d)).ravel()
-
 # Get initial conditions
 def request_float(message: str, positive: bool) -> float:
     while True:
@@ -93,6 +49,21 @@ tf = request_float('Final time (s): ', False)
 T = np.abs(tf - t0)
 time = np.linspace(t0, tf, int(FPS * T) + 1)
 
+# Second derivative of theta
+def theta_dd(g, m, l, theta, theta_d):
+    rows_A = []
+    for k in range(n):
+        rows_A.append([l[j] * np.cos(theta[k] - theta[j]) * np.sum(m[np.max([j, k]):]) for j in range(n)])
+    A = np.array(rows_A)
+    rows_B = []
+    for k in range(n):
+        rows_B.append([l[j] * np.sin(theta[k] - theta[j]) * np.sum(m[np.max([j, k]):]) for j in range(n)])
+    B = np.array(rows_B)
+    c = np.array([[np.sin(theta[i]) * np.sum(m[i:])] for i in range(n)])
+    theta_d_2 = np.array([[theta_d[i] ** 2] for i in range(n)])
+    ans = - np.linalg.inv(A) @ (g * c + B @ theta_d_2)
+    return ans.ravel()
+
 # Define new vector quantity S = (theta1, theta2, ..., thetan, d/dt theta1, d/dt theta2, ..., d/dt thetan)
 S0 = (*theta_0, *theta_d_0)
 
@@ -101,7 +72,7 @@ def dSdt(S: list[float], t: float, g: float, m: list[float], l: list[float]) -> 
     theta_d = S[n:2*n] 
     return [
         *theta_d,
-        *theta_dd(t, g, m, l, theta, theta_d)
+        *theta_dd(g, m, l, theta, theta_d)
     ]
 
 # Solution
