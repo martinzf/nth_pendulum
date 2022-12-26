@@ -4,15 +4,19 @@ from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
+# Animation frames per second
+FPS = 30
+
+# Number of bobs
 while True:
     try:
         n = int(input('How many bobs does the pendulum have?: '))
         if n > 0:
             break
         else:
-            print('Number of bobs must be strictly positive')
+            print('Input must be strictly positive.')
     except:
-        print('Input must be an integer')
+        print('Input must be an integer.')
 
 # Lengths
 symbols = (fr'l_{i}' for i in range(n))
@@ -62,16 +66,34 @@ for i, row in enumerate(theta_dd):
 theta_dd_f = smp.lambdify((t, g, *m, *l, *theta, *theta_d), theta_dd.T.tolist()[0])
 
 # Get initial conditions
-def request_float():
-    pass
-theta_0 = [1, 1]
-theta_d_0 = [1, 1]
-length = np.array([1, 1])
-mass = [1, 1]
+def request_float(message: str, positive: bool) -> float:
+    while True:
+        try:
+            f = float(input(message))
+            if not(positive):
+                return f
+            if f > 0:
+                return f
+            print('Input must be strictly positive.')
+        except:
+            print('Input must be a float.')
+
+print("Input each bob's parameters.")
+theta_0 = np.zeros(n)
+theta_d_0 = np.zeros(n)
+length = np.zeros(n)
+mass = np.zeros(n)
+for i in range(n):
+    theta_0[i] = request_float(f'Initial angle wrt vertical of pendulum {i+1} (rad): ', False)
+    theta_d_0[i] = request_float(f'Initial angular velocity of pendulum {i+1} (rad/s): ', False)
+    length[i] = request_float(f'Length of pendulum {i+1} (m): ', True)
+    mass[i] = request_float(f'Mass of pendulum {i+1} (kg): ', True)
+
 gravity = 9.8
-t0 = 0
-tf = 10
-time = np.linspace(0, 10, 101)
+t0 = request_float('Initial time (s): ', False)
+tf = request_float('Final time (s): ', False)
+T = np.abs(tf - t0)
+time = np.linspace(t0, tf, int(FPS * T) + 1)
 
 # Define new vector quantity S = (theta1, theta2, ..., thetan, d/dt theta1, d/dt theta2, ..., d/dt thetan)
 S0 = (*theta_0, *theta_d_0)
@@ -88,8 +110,8 @@ def dSdt(S: list[float], t: float, g: float, m: list[float], l: list[float]) -> 
 sol = odeint(dSdt, y0=S0, t=time, args=(gravity, mass, length))
 
 length = np.array([[1], [1]])
-x = np.zeros((n, 101))
-y = np.zeros((n, 101))
+x = np.zeros((n, len(time)))
+y = np.zeros((n, len(time)))
 for i in range(n):
     x[i] = np.sum(length[0:i+1] * np.sin(sol.T[0:i+1]))
     y[i] = - np.sum(length[0:i+1] * np.sin(sol.T[0:i+1]))
@@ -100,7 +122,8 @@ def animate(t):
 
 fig = plt.figure()
 ln, = plt.plot([], [], 'o--')
-plt.xlim(-4, 4)
-plt.ylim(-4, 4)
-ani = animation.FuncAnimation(fig, animate, frames=100, interval=50)
-ani.save('pendulum.gif', writer='pillow', fps=25)
+lim = np.sum(length)
+plt.xlim(-lim, lim)
+plt.ylim(-lim, lim)
+ani = animation.FuncAnimation(fig, animate, frames=len(time), interval=50)
+ani.save('pendulum.gif', writer='pillow', fps=FPS)
