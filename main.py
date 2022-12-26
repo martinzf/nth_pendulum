@@ -3,6 +3,7 @@ import sympy as smp
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 from matplotlib import animation
+import webbrowser
 
 # Animation frames per second
 FPS = 30
@@ -57,13 +58,10 @@ c = smp.Matrix([[smp.sin(theta[i]) * summation(m, i, n)] for i in range(n)])
 
 theta_d_2 = smp.Matrix([[theta_d[i] ** 2] for i in range(n)])
 
-# Explicit system of ODEs
-theta_dd = - (A.inv() * (g * c + B * theta_d_2))
-for i, row in enumerate(theta_dd):
-    theta_dd[i] = row.simplify()
-
 # Obtain numerical functions
-theta_dd_f = smp.lambdify((t, g, *m, *l, *theta, *theta_d), theta_dd.T.tolist()[0])
+non_homo = smp.lambdify((t, g, *m, *l, *theta, *theta_d), -(g * c + B * theta_d_2))
+A = smp.lambdify((t, g, *m, *l, *theta, *theta_d), A)
+theta_dd = lambda t, g, m, l, theta, theta_d: (np.linalg.inv(A(t, g, *m, *l, *theta, *theta_d)) @ non_homo(t, g, *m, *l, *theta, *theta_d)).ravel()
 
 # Get initial conditions
 def request_float(message: str, positive: bool) -> float:
@@ -79,15 +77,15 @@ def request_float(message: str, positive: bool) -> float:
             print('Input must be a float.')
 
 print("Input each bob's parameters.")
-theta_0 = np.zeros(n)
-theta_d_0 = np.zeros(n)
-length = np.zeros(n)
-mass = np.zeros(n)
+theta_0 = []
+theta_d_0 = []
+length = []
+mass = []
 for i in range(n):
-    theta_0[i] = request_float(f'Initial angle wrt vertical of pendulum {i+1} (rad): ', False)
-    theta_d_0[i] = request_float(f'Initial angular velocity of pendulum {i+1} (rad/s): ', False)
-    length[i] = request_float(f'Length of pendulum {i+1} (m): ', True)
-    mass[i] = request_float(f'Mass of pendulum {i+1} (kg): ', True)
+    theta_0.append(request_float(f'Initial angle wrt vertical of pendulum {i+1} (rad): ', False))
+    theta_d_0.append(request_float(f'Initial angular velocity of pendulum {i+1} (rad/s): ', False))
+    length.append(request_float(f'Length of pendulum {i+1} (m): ', True))
+    mass.append(request_float(f'Mass of pendulum {i+1} (kg): ', True))
 
 gravity = 9.8
 t0 = request_float('Initial time (s): ', False)
@@ -103,27 +101,32 @@ def dSdt(S: list[float], t: float, g: float, m: list[float], l: list[float]) -> 
     theta_d = S[n:2*n] 
     return [
         *theta_d,
-        *theta_dd_f(t, g, *m, *l, *theta, *theta_d)
+        *theta_dd(t, g, m, l, theta, theta_d)
     ]
 
 # Solution
 sol = odeint(dSdt, y0=S0, t=time, args=(gravity, mass, length))
 
-length = np.array([[1], [1]])
-x = np.zeros((n, len(time)))
-y = np.zeros((n, len(time)))
+length = np.reshape(length, (n, 1))
+x = np.zeros((n + 1, len(time))) # Start with row of zeros representing anchor point
+y = np.zeros((n + 1, len(time)))
 for i in range(n):
-    x[i] = np.sum(length[0:i+1] * np.sin(sol.T[0:i+1]))
-    y[i] = - np.sum(length[0:i+1] * np.sin(sol.T[0:i+1]))
+    i += 1
+    x[i] = np.sum(length[0:i] * np.sin(sol.T[0:i]), axis=0)
+    y[i] = - np.sum(length[0:i] * np.cos(sol.T[0:i]), axis=0)
 
 # Animation
 def animate(t):
     ln.set_data(x.T[t], y.T[t])
 
 fig = plt.figure()
-ln, = plt.plot([], [], 'o--')
-lim = np.sum(length)
+ln, = plt.plot([], [], 'o-')
+lim = np.sum(length) * 1.1
 plt.xlim(-lim, lim)
 plt.ylim(-lim, lim)
+plt.xlabel('X (m)')
+plt.ylabel('Y (m)')
+plt.title(f'{n}-pendulum')
 ani = animation.FuncAnimation(fig, animate, frames=len(time), interval=50)
 ani.save('pendulum.gif', writer='pillow', fps=FPS)
+webbrowser.open('pendulum.gif')
