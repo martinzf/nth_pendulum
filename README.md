@@ -7,15 +7,15 @@ Python 3.11 project for simulating an n-pendulum, a physical system akin to a ch
 
 ### How to use
 1. Clone the repository and open its folder from the CLI.
-2. Run the command `pip install -r requirements.txt` to install dependencies.
-3. Run the command `python main.py` (or `python3 main.py` if both Python 2 and Python 3 are installed on your computer).
-4. You will be prompted to fill in information about the simulation. Do so, pressing `enter` after typing each value.
-5. Wait while the animation loads. The programme will create `pendulum.gif` and open it automatically.
-
-Warning: The more links you add to the pendulum, the longer it takes the programme to run. I would recommend not going above 10. Performance will improve whenever Numba becomes available for Python 3.11.
+1. (Optional) Run the command `python -m venv venv` (or `python3 -m venv venv` if both Python 2 and Python 3 are installed on your computer) followed by `venv/Scripts/activate` to create a virtual environment in which to install dependencies.
+1. Run the command `pip install -r requirements.txt` to install dependencies.
+1. Run the command `python main.py` (or `python3 main.py` if both Python 2 and Python 3 are installed on your computer).
+1. You will be prompted to fill in information about the simulation. Do so, pressing `enter` after typing the answer to each prompt.
+1. Wait while the animation loads. The programme will create `pendulum.gif` and open it automatically.
+NOTE: I wouldn't currently recommend simulating more than 10 bobs, as it might take quite long depending on your hardware. Performance should improve whenever Numba releases for Python 3.11.
 
 ### Theory
-Let's consider an n-pendulum with $n$ rods of length $l_i$ and $n$ bobs of mass $m_i$ linked together. Let's also take a cartesian coordinate axis centered at the anchor point of rod $1$, with an upward&ndash;directed $y$&ndash;axis. 
+Let's consider an n-pendulum with $n$ rods of length $l_i$ and $n$ bobs of mass $m_i$ linked together. Let's also take a set of cartesian coordinate axes centered at the anchor point of rod $1$, with an upward&ndash;directed $y$&ndash;axis. 
 
 Given that our system satisfies the Principle of Virtual Work, we can apply the Lagrangian formalism. If we take our generalised coordinates $\theta_i$ to be the counterclockwise angle between each rod and the negative $y$ direction, the $(x_i,y_i)$ coordinates of each bob will be:
 
@@ -178,7 +178,7 @@ l_1\sin(\theta_n-\theta_1)m_n & l_1\sin(\theta_n-\theta_2)m_n & \cdots & 0
 \end{pmatrix}
 ```
 
-We can represent this system of equations as follows:
+We can represent this system of equations in matrix notation, where the matrix on the LHS is $A(\vec{\theta})$, the matrix on the RHS is $B(\vec{\theta})$ and the vector of sines is $\vec{c}(\vec{\theta})$:
 
 $$
 A\ddot{\vec{\theta}} = -g\vec{c}-B\dot{\vec{\theta}^2}
