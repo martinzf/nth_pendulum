@@ -12,7 +12,7 @@ Python 3.11 project for simulating an n-pendulum, a physical system akin to a ch
 1. Run the command `python main.py` (or `python3 main.py` if both Python 2 and Python 3 are installed on your computer).
 1. You will be prompted to fill in information about the simulation. Do so, pressing `enter` after typing the answer to each prompt.
 1. Wait while the animation loads. The programme will create `pendulum.gif` and open it automatically.
-NOTE: I wouldn't currently recommend simulating more than 10 bobs, as it might take quite long depending on your hardware. Performance should improve whenever Numba releases for Python 3.11.
+NOTE: I wouldn't currently recommend simulating more than 10 bobs, as it might take quite long depending on your hardware. I would also recommend short simulations, around 10-20s.
 
 ### Theory
 Let's consider an n-pendulum with $n$ rods of length $l_i$ and $n$ bobs of mass $m_i$ linked together. Let's also take a set of cartesian coordinate axes centered at the anchor point of rod $1$, with an upward&ndash;directed $y$&ndash;axis. 
@@ -184,10 +184,4 @@ $$
 A\ddot{\vec{\theta}} = -g\vec{c}-B\dot{\vec{\theta}^2}
 $$
 
-And we can obtain the following explicit formula for $\ddot{\vec{\theta}}$:
-
-$$
-\ddot{\vec{\theta}} = -A^{-1}\left(g\vec{c}+B\dot{\vec{\theta}^2}\right)
-$$
-
-This last step, as well as the solution to the system of ODEs will be calculated numerically.
+This linear system, as well as the associated system of ODEs, can be solved numerically.
