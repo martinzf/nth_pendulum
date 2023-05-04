@@ -56,12 +56,13 @@ def systeq(n, g, m, l, theta, theta_d) -> tuple[np.array]:
             B[k, j] = l[j] * np.sin(theta[k] - theta[j]) * np.sum(m[i:])
     return A, - (g * c + B @ theta_d ** 2)
 
-# Define new vector quantity S = (theta1, theta2, ..., thetan, d/dt theta1, d/dt theta2, ..., d/dt thetan)
+# Define new vector quantity S = (theta1, theta2, ..., thetan, 
+#                                 d/dt theta1, d/dt theta2, ..., d/dt thetan,
+#                                 previous d2/dt2 theta1, d2/dt2 theta2, ..., d2/dt2 thetan)
 def dSdt(S: np.array, t: float, n:int, g: float, m: np.array, l: np.array) -> np.array:
     theta = S[0:n]
     theta_d = S[n:2*n] 
-    x0 = np.gradient(theta_d) if n > 1 else theta_d
-    theta_dd = la.gmres(*systeq(n, g, m, l, theta, theta_d), x0=x0)[0]
+    theta_dd = la.gmres(*systeq(n, g, m, l, theta, theta_d))[0]
     return np.hstack((theta_d, theta_dd))
 
 # Return to cartesian coordinates
