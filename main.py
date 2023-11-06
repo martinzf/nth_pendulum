@@ -1,13 +1,12 @@
 import numpy as np
 from scipy.integrate import odeint
-import scipy.sparse.linalg as la
-import numba as nb
+import scipy.sparse as sp
 import matplotlib.pyplot as plt
 from matplotlib import animation
-import webbrowser
+plt.style.use('fast')
 
 # Animation frames per second
-FPS = 30
+DT = .03
 
 # Get user input
 def request(type: callable, prompt: str, positive: bool) -> float:
@@ -30,48 +29,44 @@ def get_data() -> tuple[float, list[float], np.array]:
     print('Initial wrt vertical of each pendulum (rad): ')
     theta_0 = np.array([request(float, f'{i + 1}: ', False) for i in range(n)])
     print('Initial angular velocity of each pendulum (rad/s): ')
-    theta_d_0 = np.array([request(float, f'{i + 1}: ', False) for i in range(n)])
+    d_theta0 = np.array([request(float, f'{i + 1}: ', False) for i in range(n)])
     print('Length of each pendulum (m): ')
-    length = np.array([request(float, f'{i + 1}: ', False) for i in range(n)])
+    l = np.array([request(float, f'{i + 1}: ', False) for i in range(n)])
     print('Mass of each pendulum (kg): ')
-    mass = np.array([request(float, f'{i + 1}: ', False) for i in range(n)])
+    m = np.array([request(float, f'{i + 1}: ', False) for i in range(n)])
     # Gravity
-    gravity = request(float, 'Gravity (m/s^2): ', True)
+    g = request(float, 'Gravity (m/s^2): ', True)
     # Duration
     T = request(float, 'Duration (s): ', False)
-    time = np.linspace(0, T, int(FPS * T) + 1)
-    return n, theta_0, theta_d_0, length, mass, gravity, time
+    t = np.arange(0, T, DT)
+    return n, theta_0, d_theta0, l, m, g, t
 
-# Second derivative of theta system of equations
-@nb.njit('i8, f8, f8[:], f8[:], f8[:], f8[:]', parallel=True, nogil=True, fastmath=True)
-def systeq(n, g, m, l, theta, theta_d) -> tuple[np.array]:
-    A = np.empty((n, n), dtype=np.float64)
-    B = np.empty((n, n), dtype=np.float64)
-    c = np.empty(n, dtype=np.float64)
-    for k in nb.prange(n):
-        c[k] = np.sin(theta[k]) * np.sum(m[k:])
-        for j in nb.prange(n):
-            i = int(max(j, k))
-            A[k, j] = l[j] * np.cos(theta[k] - theta[j]) * np.sum(m[i:])
-            B[k, j] = l[j] * np.sin(theta[k] - theta[j]) * np.sum(m[i:])
-    return A, - (g * c + B @ theta_d ** 2)
+# ODE
+def simple_pendulum(y, _, l, g):
+    theta = y[:len(y)//2]
+    d_theta = y[len(y)//2:]
+    dd_theta = - g / l * np.sin(theta)
+    return np.concatenate((d_theta, dd_theta))
 
-# Define new vector quantity S = (theta1, theta2, ..., thetan, 
-#                                 d/dt theta1, d/dt theta2, ..., d/dt thetan,
-#                                 previous d2/dt2 theta1, d2/dt2 theta2, ..., d2/dt2 thetan)
-def dSdt(S: np.array, t: float, n:int, g: float, m: np.array, l: np.array) -> np.array:
-    theta = S[0:n]
-    theta_d = S[n:2*n] 
-    theta_dd = la.gmres(*systeq(n, g, m, l, theta, theta_d))[0]
-    return np.hstack((theta_d, theta_dd))
+def n_pendulum(y, _, l, g, main_diag, off_diag, mu):
+    theta = y[:len(y)//2]
+    d_theta = y[len(y)//2:]
+    phase = theta[:-1] - theta[1:]
+    Zinv = sp.diags((main_diag, np.exp(1j * phase) * off_diag, np.exp(-1j * phase) * off_diag), 
+                           offsets=(0, 1, -1))
+    RZinv_inv = sp.linalg.inv(np.real(Zinv))
+    A = np.imag(Zinv) * RZinv_inv * (l * d_theta ** 2)
+    B = - g * (np.real(Zinv) + np.imag(Zinv) * RZinv_inv * np.imag(Zinv)) * (mu * np.sin(theta))
+    dd_theta = (A + B) / l
+    return np.concatenate((d_theta, dd_theta))
 
 # Return to cartesian coordinates
-def theta2xy(length: np.array, theta: np.array) -> tuple[np.array]:
-    length = np.reshape(length, (n, 1))
-    x = np.zeros((n + 1, len(time))) # Start with row of zeros representing anchor point
-    y = np.zeros((n + 1, len(time)))
-    s = length * np.sin(theta)
-    c = length * np.cos(theta)
+def theta2xy(l: np.array, theta: np.array) -> tuple[np.array]:
+    l = np.reshape(l, (n, 1))
+    x = np.zeros((n + 1, len(t))) # Start with row of zeros representing anchor point
+    y = np.zeros((n + 1, len(t)))
+    s = l * np.sin(theta)
+    c = l * np.cos(theta)
     for i in range(n):
         i += 1
         x[i] = np.sum(s[:i], axis=0)
@@ -79,28 +74,33 @@ def theta2xy(length: np.array, theta: np.array) -> tuple[np.array]:
     return x, y
 
 # Animation
-def animate(t: int):
-    ln.set_data(x.T[t], y.T[t])
+def animate(i: int):
+    ln.set_data(x.T[i], y.T[i])
     return ln,
 
 if __name__ == '__main__':
     # Data
-    n, theta_0, theta_d_0, length, mass, gravity, time = get_data()
-    # Vector quantity S = (theta1, theta2, ..., thetan, d/dt theta1, d/dt theta2, ..., d/dt thetan)
-    S0 = [*theta_0, *theta_d_0]
+    n, theta0, d_theta0, l, m, g, t = get_data()
+    # Vector quantity y = (theta1, theta2, ..., thetan, d/dt theta1, d/dt theta2, ..., d/dt thetan)
+    y0 = np.concatenate((theta0, d_theta0))
     # Solution
-    sol = odeint(dSdt, y0=S0, t=time, args=(n, gravity, mass, length))
+    main_diag = 1/m + np.concatenate(([0], 1/m[:-1]))
+    off_diag = - 1/m[:-1]
+    mu = np.flip(np.cumsum(np.flip(m)))
+    if n == 1:
+        sol = odeint(simple_pendulum, y0, t, args=(l, g))
+    else:
+        sol = odeint(n_pendulum, y0, t, args=(l, g, main_diag, off_diag, mu))
     # Return to cartesian coordinates
-    x, y = theta2xy(length, sol.T[:n])
+    x, y = theta2xy(l, sol.T[:n])
     # Animation
     fig = plt.figure()
     ln, = plt.plot([], [], 'o-')
-    lim = np.sum(length) * 1.1
+    lim = np.sum(l) * 1.1
     plt.xlim(- lim, lim)
     plt.ylim(- lim, lim)
     plt.xlabel('X (m)')
     plt.ylabel('Y (m)')
-    plt.title(f'{n}-pendulum')
-    ani = animation.FuncAnimation(fig, animate, frames=len(time), interval=50, blit=True)
-    ani.save('pendulum.gif', writer='pillow', fps=FPS)
-    webbrowser.open('pendulum.gif')
+    plt.title(f'{n}-Pendulum')
+    ani = animation.FuncAnimation(fig, animate, frames=len(t), interval=DT*1e3, blit=True)
+    plt.show()
