@@ -59,7 +59,7 @@ if __name__ == '__main__':
     plt.xlabel('X (m)')
     plt.ylabel('Y (m)')
     plt.title(f'{n}-Pendulum')
-    def animate(i: int):
+    def animate(i):
         ln.set_data(x.T[i], y.T[i])
         return ln,
     ani = animation.FuncAnimation(fig, animate, frames=len(t), interval=DT*1e3, blit=True)
