@@ -28,19 +28,6 @@ def n_pendulum(y, _, n, l, g, Zinv, off_diag, mu):
     dd_theta = (A + B) / l
     return np.concatenate((d_theta, dd_theta))
 
-# Conversion to Cartesian
-def theta2xy(l: np.array, theta: np.array) -> tuple[np.array]:
-    l = np.reshape(l, (n, 1))
-    x = np.zeros((n + 1, len(t))) # Start with row of zeros representing anchor point
-    y = np.zeros((n + 1, len(t)))
-    s = l * np.sin(theta)
-    c = l * np.cos(theta)
-    for i in range(n):
-        i += 1
-        x[i] = np.sum(s[:i], axis=0)
-        y[i] = - np.sum(c[:i], axis=0)
-    return x, y
-
 # Animation
 def animate(i: int):
     ln.set_data(x.T[i], y.T[i])
@@ -61,11 +48,14 @@ if __name__ == '__main__':
     # Solution
     mu = np.flip(np.cumsum(np.flip(m)))
     if n == 1:
-        sol = odeint(simple_pendulum, y0, t, args=(l, g))
+        y = odeint(simple_pendulum, y0, t, args=(l, g))
     else:
-        sol = odeint(n_pendulum, y0, t, args=(n, l, g, Zinv, off_diag, mu))
-    # Return to cartesian coordinates
-    x, y = theta2xy(l, sol.T[:n])
+        y = odeint(n_pendulum, y0, t, args=(n, l, g, Zinv, off_diag, mu))
+    # Conversion to cartesian coordinates
+    x = np.cumsum(l[:, np.newaxis] * np.sin(y.T[:n]), axis=0)
+    y = - np.cumsum(l[:, np.newaxis] * np.cos(y.T[:n]), axis=0)
+    x = np.vstack((np.zeros(len(t)), x)) # Start with row of zeros representing anchor point
+    y = np.vstack((np.zeros(len(t)), y))
     # Animation
     fig = plt.figure(figsize=(8, 8))
     ln, = plt.plot([], [], 'o-')
