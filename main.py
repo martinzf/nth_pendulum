@@ -16,16 +16,15 @@ def simple_pendulum(y, _, l, g):
     dd_theta = - g / l * np.sin(theta)
     return np.concatenate((d_theta, dd_theta))
 
-def n_pendulum(y, _, l, g, main_diag, off_diag, mu):
-    theta = y[:len(y)//2]
-    d_theta = y[len(y)//2:]
-    Zinv = sp.diags((np.exp(- 1j * np.diff(theta)) * off_diag, 
-                     main_diag,
-                     np.exp(1j * np.diff(theta)) * off_diag), 
-                     offsets=(1, 0, -1))
-    RZinv_inv = sp.linalg.inv(np.real(Zinv))
-    A = np.imag(Zinv) * RZinv_inv * (l * d_theta ** 2)
-    B = - g * (np.real(Zinv) + np.imag(Zinv) * RZinv_inv * np.imag(Zinv)) * (mu * np.sin(theta))
+def n_pendulum(y, _, n, l, g, Zinv, off_diag, mu):
+    theta = y[:n]
+    d_theta = y[n:]
+    Zinv.setdiag(np.exp(- 1j * np.diff(theta)) * off_diag, 1)
+    Zinv.setdiag(np.exp(1j * np.diff(theta)) * off_diag, - 1)
+    RZinv_inv = sp.linalg.factorized(np.real(Zinv) + sp.csc_matrix((n, n)))
+    A = np.imag(Zinv) * RZinv_inv(l * d_theta ** 2)
+    B = - g * (np.real(Zinv) * (mu * np.sin(theta)) + 
+               np.imag(Zinv) * RZinv_inv(np.imag(Zinv) * (mu * np.sin(theta))))
     dd_theta = (A + B) / l
     return np.concatenate((d_theta, dd_theta))
 
@@ -53,14 +52,18 @@ if __name__ == '__main__':
     t = np.arange(0, dur, DT)
     # Vector quantity y = (theta1, theta2, ..., thetan, d/dt theta1, d/dt theta2, ..., d/dt thetan)
     y0 = np.concatenate((theta0, d_theta0))
-    # Solution
-    main_diag = 1/m + np.concatenate(([0], 1/m[:-1]))
+    # Z^-1 matrix
     off_diag = - 1/m[:-1]
+    Zinv = sp.diags((np.exp(- 1j * np.diff(theta0)) * off_diag, 
+                     1/m + np.concatenate(([0], 1/m[:-1])),
+                     np.exp(1j * np.diff(theta0)) * off_diag), 
+                     offsets=(1, 0, -1), format='csc')
+    # Solution
     mu = np.flip(np.cumsum(np.flip(m)))
     if n == 1:
         sol = odeint(simple_pendulum, y0, t, args=(l, g))
     else:
-        sol = odeint(n_pendulum, y0, t, args=(l, g, main_diag, off_diag, mu))
+        sol = odeint(n_pendulum, y0, t, args=(n, l, g, Zinv, off_diag, mu))
     # Return to cartesian coordinates
     x, y = theta2xy(l, sol.T[:n])
     # Animation
