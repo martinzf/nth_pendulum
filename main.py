@@ -22,16 +22,10 @@ def n_pendulum(y, _, n, l, g, Zinv, off_diag, mu):
     Zinv.setdiag(np.exp(- 1j * np.diff(theta)) * off_diag, 1)
     Zinv.setdiag(np.exp(1j * np.diff(theta)) * off_diag, - 1)
     RZinv_inv = sp.linalg.factorized(np.real(Zinv) + sp.csc_matrix((n, n)))
-    A = np.imag(Zinv) * RZinv_inv(l * d_theta ** 2)
-    B = - g * (np.real(Zinv) * (mu * np.sin(theta)) + 
-               np.imag(Zinv) * RZinv_inv(np.imag(Zinv) * (mu * np.sin(theta))))
-    dd_theta = (A + B) / l
+    dd_theta = 1 / l * (np.imag(Zinv) * RZinv_inv(l * d_theta ** 2) -
+               g * (np.real(Zinv) * (mu * np.sin(theta)) +
+               np.imag(Zinv) * RZinv_inv(np.imag(Zinv) * (mu * np.sin(theta)))))
     return np.concatenate((d_theta, dd_theta))
-
-# Animation
-def animate(i: int):
-    ln.set_data(x.T[i], y.T[i])
-    return ln,
 
 if __name__ == '__main__':
     # Data
@@ -65,5 +59,8 @@ if __name__ == '__main__':
     plt.xlabel('X (m)')
     plt.ylabel('Y (m)')
     plt.title(f'{n}-Pendulum')
+    def animate(i: int):
+        ln.set_data(x.T[i], y.T[i])
+        return ln,
     ani = animation.FuncAnimation(fig, animate, frames=len(t), interval=DT*1e3, blit=True)
     plt.show()
